@@ -1,6 +1,6 @@
 'use strict';
 
-var Vector = function () {
+var Vector = function () { //test
 
   var Vector = function () {
     function Vector() {
