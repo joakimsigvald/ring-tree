@@ -1,75 +1,75 @@
 var mouse = undefined;
-var tree = undefined;
 
 var draw = function() {
 	var panel = $("#panel");
 	var ctx = panel[0].getContext('2d');
-	bounds = createBounds(0, 0, panel.width(), panel.height());
-	mouse = mouse || new Vector(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-	drawTree(ctx, bounds, tree);
+	ctx.fillStyle = '#FFF';
+  	ctx.fillRect(0, 0, panel.width(), panel.height());
+  	var outer = createOval(panel.width() / 2, panel.height() / 2, panel.width() / 2, panel.height() / 2);
+	mouse = mouse || new Vector(outer.x, outer.y);
+	drawTree(ctx, outer, testTree);
 }
 
-var drawTree = function(ctx, bounds, tree) {
-	var focus = new Vector(0.2, 0.2);
+var drawTree = function(ctx, outer, tree) {
+	var focus = computeFocus(outer);
 	var circles = getCircles(tree.children.length, focus);
-	drawNode(ctx, bounds, circles[0]);
-	drawChildren(ctx, bounds, tree.children, circles.slice(1));
+	drawNode(ctx, outer, circles[0]);
+	drawChildren(ctx, outer, tree.children, circles.slice(1));
 }
 
-var drawNode = function(ctx, bounds, innerCircle) {
-	drawShape(ctx, bounds, innerCircle);
-	drawName(ctx, bounds);
+var computeFocus = function(outer) {
+	var x = (outer.x - mouse.x) / outer.xRadius;
+	var y = (outer.y - mouse.y) / outer.xRadius;
+	var radius = Math.sqrt(x * x + y * y);
+	if (radius > 1 + minParentRadius)
+		return new Vector(0, 0);
+	if (radius < minParentRadius)
+		return new Vector(x, y);
+	var factor = minParentRadius / radius;
+	if (radius > 1)
+		factor = factor * (1 - (radius - 1) / minParentRadius); 
+	x = x * factor;
+	y = y * factor;
+	return new Vector(x, y);
 }
 
-var drawShape = function(ctx, bounds, circle) {
-	var outerRadX = bounds.width/2;
-	var outerRadY = bounds.height/2;
-	var innerRadX = outerRadX*circle.radius;
-	var innerRadY = outerRadY*circle.radius;
-	var x = outerRadX * (1 + circle.center.x);
-	var y = outerRadY * (1 + circle.center.y);
-	drawOval(ctx, bounds.x + x, bounds.y + y, innerRadX, innerRadY);
+var drawNode = function(ctx, outer, circle) {
+	var oval = computeOval(outer, circle);
+	drawOval(ctx, oval);
+	drawName(ctx, outer);
 }
 
-var drawOval = function(ctx, x, y, xRad, yRad) {
+var drawOval = function(ctx, oval) {
 	ctx.beginPath();
-	ctx.ellipse(x, y, xRad, yRad, 0, 0, 2 * Math.PI);
+	ctx.ellipse(oval.x, oval.y, oval.xRadius, oval.yRadius, 0, 0, 2 * Math.PI);
 	ctx.stroke();	
 }
 
-var drawName = function(ctx, bounds) {
+var drawName = function(ctx, outer) {
 }
 
-var drawChildren = function(ctx, bounds, children, childCircles) {
+var drawChildren = function(ctx, outer, children, childCircles) {
 	var n = children.length;
 	if (n == 0) return;
-	var scaleX = bounds.width/2;
-	var scaleY = bounds.height/2;
-	var centerX = bounds.x + scaleX;
-	var centerY = bounds.y + scaleY;
 	for (var i = 0; i < n; i++)
-		drawTree(ctx, computeChildBounds(centerX, centerY, scaleX, scaleY, childCircles[i]), children[i]);
+		drawTree(ctx, computeOval(outer, childCircles[i]), children[i]);
 }
 
-var computeChildBounds = function(centerX, centerY, scaleX, scaleY, childCircle) {
-	var x = centerX + scaleX * childCircle.center.x;
-	var y = centerY + scaleY * childCircle.center.y;
-	var radX = scaleX * childCircle.radius;
-	var radY = scaleY * childCircle.radius;
-	return createBounds(x - radX, y - radY, 2 * radX, 2 * radY);
+var computeOval = function(outer, circle) {
+	return createOval(outer.x + outer.xRadius * circle.center.x
+		, outer.y + outer.yRadius * circle.center.y
+		, outer.xRadius * circle.radius
+		, outer.yRadius * circle.radius);
 }
 
-var createBounds = function(x, y, width, height) {
-	return {x: x, y: y, width: width, height: height};
+var createOval = function(x, y, xRad, yRad) {
+	return {x: x, y: y, xRadius: xRad, yRadius: yRad};
 }
 
 $(document).ready(function() {
-	$.getJSON("testTree.json", function(json) {	tree = json; });
 	draw();
+	$(document).mousemove(function( e ) {
+	  mouse = new Vector(e.pageX, e.pageY);
+	  draw();
+	});
 });
-/*
-window.addEventListener('mousemove', function (e) {
-  mouse = new Vector(e.pageX, e.pageY);
-  draw();
-});
-*/

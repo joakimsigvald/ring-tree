@@ -1,9 +1,11 @@
+var minParentRadius = 1/3.0;
+
 var getCircles = function(n, focus) {
   var circles = [];
   if (n < 7)
   {
-    var childRadius = 1/3.0;
-    circles.push(new Circle(0, 0, 1-2*childRadius));
+    var childRadius = (1-minParentRadius)/2;
+    circles.push(new Circle(0, 0, minParentRadius));
     var pathRadius = 1 - childRadius;
     var childAngle = Math.PI/Math.max(n, 3);
     var addAngle = 2 * Math.PI/n;
